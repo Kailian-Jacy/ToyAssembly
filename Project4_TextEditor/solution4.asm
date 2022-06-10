@@ -5,11 +5,11 @@ data segment
 	; Prompt messages.
 	Prompt db "Please input filename:", 0Ah, "$"
 	Error_OpenFailed db 0Ah, "Cannot open file!" ,"$"
-	Error_KeyStrokeMissed db , 0Ah, "Keystroke input is not valid!", "$"
+	Error_KeyStrokeMissed db 0Ah, "Keystroke input is not valid!", "$"
 
 	; File related metadata.
-	; Filename db 64h, 101 dup(0)	; Filename size limited.   int 21h 03d expecting a Zero-ENDED filename.
-	Filename db "D:\TESTTXT", 0	; Filename with test file given.
+	Filename db 64h, 101 dup(0)	; Filename size limited.   int 21h 03d expecting a Zero-ENDED filename.
+	; Filename db "D:\TESTTXT", 0	; Filename with test file given.
 	File_Handler dw 0000h
 	File_Size db 4 dup('0')
 
@@ -54,21 +54,21 @@ OpenFile_ PROC near
 	; Debug Log: Unmatched pop would cause return error.
 
 ; Commented for reading-in test file,
-	; mov dx, offset Prompt
-	; mov ah, 09h
-	; int 21h
-	; ; Get FilenameInput
-	; mov dx, offset Filename
-	; mov ah, 0Ah
-	; int 21h
-	; ; DEBUGG: Trailing 0Dh input with ENTER.
-	; push di
-	; mov di, dx
-	; mov di, [di+1]
-	; and di, 00FFh
-	; add di, dx
-	; mov byte ptr [di+2], 00h
-	; pop di
+	mov dx, offset Prompt
+	mov ah, 09h
+	int 21h
+	; Get FilenameInput
+	mov dx, offset Filename
+	mov ah, 0Ah
+	int 21h
+	; DEBUGG: Trailing 0Dh input with ENTER.
+	push di
+	mov di, dx
+	mov di, [di+1]
+	and di, 00FFh
+	add di, dx
+	mov byte ptr [di+2], 00h
+	pop di
 
 	; Openfile
 	mov ah, 3Dh
@@ -816,13 +816,22 @@ LeftMove_ PROC near
 
     mov cx, ax
     and cx, 0f000h
-    shr cx, 12d
+
+    push ax
+    mov ax, cx
+    mov cl, 12d
+    shr ax, cl
+    mov cx, ax
+    pop ax
     ; =======================================
     ; [CheckPoint] Check cx. Only one bit from ax.
     ; =======================================
     
-    shl ax, 4d
-    shl bx, 4d
+    push cx
+    mov cl, 4d
+    shl ax, cl
+    shl bx, cl
+    pop cx
     add bx, cx
 
     ; Save to temp_offset.
@@ -1013,7 +1022,10 @@ GetBufferOnRow_Clear_Loop:
     mov cl, [di]
     mov ch, 00h
     mov di, offset buffer
-    shl si, 4d                  ; i *= 16
+    push cx
+    mov cl, 4d
+    shl si, cl                  ; i *= 16
+    pop cx
     add di, si                  ; di = buffer[i*16]
     mov si, offset buffer_on_row
 GetBufferOnRow_Loop:
@@ -1047,14 +1059,14 @@ GetBytesInBuf_ Proc near
 	; n = File_Size - Offset. n = cx:bx
 	push di
 	mov di, offset File_Size[0]
-	mov word ptr bx, [di] 
+	mov bx, [di] 
 	mov di, offset offsets[0]
-	mov word ptr ax, [di]
+	mov ax, [di]
 	sub bx, ax
 	mov di, offset File_Size[2]
-	mov word ptr cx, [di]
+	mov cx, [di]
 	mov di, offset offsets[2]
-	mov word ptr ax, [di]
+	mov ax, [di]
 	sbb cx, ax
 	pop di
 	
@@ -1064,7 +1076,7 @@ GetBytesInBuf_ Proc near
 	cmp bx, 256d
 	jae over256
 
-Less256:
+; Less256:
 	push di
 	mov di, offset Byte_in_buf
 	mov [di], bx
@@ -1290,7 +1302,17 @@ CharToHex_Loop:
     ; =======================================
 
     mov al, ah
-    shr al, 4d      ; Convert higher 4 bits
+    
+    push cx
+    mov cl, 4d
+
+    push cx
+    mov cl, 4d
+    shr al, cl      ; Convert higher 4 bits 
+    pop cx
+
+    pop cx
+    
     and al, 000fh
     xlat
     sub di, 1d
@@ -1330,7 +1352,11 @@ GetRow_ PROC near
     mov ax, [di]
     ; and ah, 0d
     add ax, 15
-    shr ax, 4       ; Div 16.
+
+    push cx
+    mov cl, 4d
+    shr ax, cl       ; Div 16.
+    pop cx
 
     mov di, offset rows
     mov [di], al
@@ -1394,7 +1420,11 @@ GetBytesOnRow_Ending:
     mov cx, [di]
     ; mov cl, [di]
     ; and ch, 0d
-    shl si, 4d              ; SI *= 16
+    push cx
+    mov cl, 4d
+    shl si, cl              ; SI *= 16
+    pop cx
+
     sub cx, si
     ; =======================================
     ; [CheckPoint] Check sub result cx
@@ -1507,7 +1537,10 @@ GetOffsetOfRow_ PROC near
     mov di, si
     mov dx, 00d
 
-    shl si, 4d ; I * 16
+    push cx
+    mov cl, 4d
+    shl si, cl ; I * 16
+    pop cx
     add ax, si
     adc dx, 00h
     mov di, offset location_off  ; Write in low 16 bit location.

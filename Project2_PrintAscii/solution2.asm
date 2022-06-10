@@ -44,7 +44,10 @@ code segment
 	; 	Output: Hex number in BX. [BH][BL]H
 	;==========================================================
 			mov bh, dl
-			shr bh, 4
+			push cx
+			mov cl, 4
+			shr bh, cl
+			pop cx
 			cmp bh, 09D
 			jbe number_h
 			jmp char_h
